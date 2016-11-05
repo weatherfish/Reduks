@@ -1,9 +1,6 @@
 package com.beyondeye.reduks.middlewares
 
-import com.beyondeye.reduks.Middleware
-import com.beyondeye.reduks.NextDispatcher
-import com.beyondeye.reduks.Store
-import com.beyondeye.reduks.Thunk
+import com.beyondeye.reduks.*
 
 /**
  * a middleware that knows how to handle actions of type thunk
@@ -18,7 +15,7 @@ import com.beyondeye.reduks.Thunk
  * Technically a thunk is an Action that is actually a function that return the actual action to be
  * dispatched to the State Store.
  * It has many use cases. See the tests for examples.
- * The Thunk middleware pass to the thunk as
+ * The ThunkFn middleware pass to the thunk as
  * arguments the Store main dispatcher and the current state. This allows for the use case of a thunk
  * that dispatch multiple conditional actions according to the current state.
  * This very useful for making it easy to implement state change sequence logic,
@@ -30,13 +27,13 @@ import com.beyondeye.reduks.Thunk
  */
 
 class ThunkMiddleware<S> : Middleware<S> {
-    override fun dispatch(store: Store<S>, next: NextDispatcher, action: Any):Any {
+    override fun dispatch(store: Store<S>, nextDispatcher:  (Any)->Any, action: Any):Any {
         if(action is Thunk<*>) {
             @Suppress("UNCHECKED_CAST")
-            val a=(action as Thunk<S>).execute(store.dispatch ,store.state)
-            return next(a)
+            val a=(action as Thunk<S>).execute( { it-> store.dispatch(it)  } ,store.state)
+            return nextDispatcher(a)
         }
-        return  next(action)
+        return  nextDispatcher(action)
     }
 
 }

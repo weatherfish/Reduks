@@ -9,11 +9,11 @@ import com.beyondeye.reduks.modules.ActionWithContext
  */
 
 class UnwrapActionMiddleware<S> : Middleware<S> {
-    override fun dispatch(store: Store<S>, next: NextDispatcher, action: Any):Any {
+    override fun dispatch(store: Store<S>, nextDispatcher:  (Any)->Any, action: Any):Any {
         if(action is ActionWithContext) {
-            return next(action.action)
+            return nextDispatcher(action.action)
         }
-        return  next(action)
+        return  nextDispatcher(action)
     }
 
 }

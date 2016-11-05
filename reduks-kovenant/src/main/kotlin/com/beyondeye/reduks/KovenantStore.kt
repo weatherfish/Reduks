@@ -2,6 +2,7 @@ package com.beyondeye.reduks
 
 import com.beyondeye.reduks.middlewares.AsyncActionMiddleWare
 import com.beyondeye.reduks.middlewares.ThunkMiddleware
+import com.beyondeye.reduks.middlewares.applyMiddleware
 import nl.komponents.kovenant.*
 import nl.komponents.kovenant.android.androidUiDispatcher
 import nl.komponents.kovenant.ui.promiseOnUi
@@ -17,12 +18,13 @@ class KovenantStore<S>(initialState: S, private var reducer: Reducer<S>, val obs
     override fun replaceReducer(reducer: Reducer<S>) {
         this.reducer = reducer
     }
-
-    class Creator<S>(val observeOnUiThread: Boolean = true) : StoreCreator<S> {
-        override fun create(reducer: Reducer<S>, initialState: S): Store<S> = KovenantStore<S>(initialState, reducer, observeOnUiThread)
-        override val storeStandardMiddlewares: Array<Middleware<S>> = arrayOf(ThunkMiddleware<S>(), AsyncActionMiddleWare<S>())
-        override fun <S_> ofType(): StoreCreator<S_> {
-            return Creator<S_>(observeOnUiThread)
+    class Creator<S>(val observeOnUiThread: Boolean = true, val withStandardMiddleware:Boolean=true) : StoreCreator<S> {
+        override fun create(reducer: Reducer<S>, initialState: S): Store<S> {
+            val res = KovenantStore<S>(initialState, reducer, observeOnUiThread)
+            return if (!withStandardMiddleware)
+                res
+            else
+                res.applyMiddleware(ThunkMiddleware(), AsyncActionMiddleWare())
         }
     }
 
@@ -48,7 +50,7 @@ class KovenantStore<S>(initialState: S, private var reducer: Reducer<S>, val obs
         get() = _statePromise.get() //wait completion of all current queued promises
     private val subscribers= mutableListOf<StoreSubscriber<S> >()
     private val mainDispatcher = object : Middleware<S> {
-        override fun dispatch(store: Store<S>, next: NextDispatcher, action: Any): Any {
+        override fun dispatch(store: Store<S>, nextDispatcher:  (Any)->Any, action: Any): Any {
             val deferredNextState = deferred<S, Exception>()
             var curStatePromise: Promise<S, Exception>? = null
             synchronized(this) {
@@ -91,7 +93,9 @@ class KovenantStore<S>(initialState: S, private var reducer: Reducer<S>, val obs
      * An action can be of Any type
      */
     override var dispatch: (action: Any) -> Any = { action ->
-        mainDispatcher.dispatch(this, NullDispatcher(), action)
+        mainDispatcher.dispatch(this,
+                 { it -> it}, //null dispatcher that ends the chain
+                action)
     }
 
     override fun subscribe(storeSubscriber: StoreSubscriber<S>): StoreSubscription {
@@ -101,10 +105,6 @@ class KovenantStore<S>(initialState: S, private var reducer: Reducer<S>, val obs
                 subscribers.remove(storeSubscriber)
             }
         }
-    }
-
-    class NullDispatcher : NextDispatcher {
-        override fun dispatch(action: Any): Any = action
     }
 }
 

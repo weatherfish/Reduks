@@ -1,5 +1,7 @@
 package com.beyondeye.reduks
 
+import com.beyondeye.reduks.middlewares.applyMiddleware
+
 /**
  * Factory for some specific Store type
  * Created by daely on 7/31/2016.
@@ -9,16 +11,19 @@ interface StoreCreator<S> {
      * create a new store associated to this specific factory type
      */
     fun create(reducer: Reducer<S>, initialState: S):Store<S>
+}
+fun<S> StoreCreator<S>.enhancedWith(vararg enhancers: StoreEnhancer<S>):StoreCreator<S> {
+    return combineEnhancers(*enhancers).enhance(this)
+}
 
-    /**
-     * get list of standard middlewares available for the type of Store associated with this factory
-     */
-    val storeStandardMiddlewares: Array<out Middleware<S>>
+fun <S> StoreCreator<S>.withMiddlewares(vararg middlewares: Middleware<S>):StoreCreator<S> = StoreCreatorWithMiddlewares(this,*middlewares)
 
-    /**
-     * return new factory with same parameter but for new state type S2
-     */
-    fun <S_> ofType(): StoreCreator<S_>
+class StoreCreatorWithMiddlewares<S>(val creator:StoreCreator<S>,vararg middlewares_: Middleware<S>):StoreCreator<S> {
+    val middlewares=middlewares_
+    override fun create(reducer: Reducer<S>, initialState: S): Store<S> {
+        val res=creator.create(reducer,initialState)
+        return res.applyMiddleware(*middlewares)
+    }
 }
 
 /**

@@ -16,5 +16,5 @@ class DevToolsTestReducer : Reducer<DevToolsReducerTest.TestState> {
         }
     }
 
-    var updated = false;
+    var updated = false
 }

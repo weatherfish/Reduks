@@ -14,23 +14,21 @@ class MultiStore3<S1 : Any, S2 : Any, S3 : Any>(
         throw UnsupportedOperationException("MultiStore does not support replacing reducer")
     }
 
-    class Factory<S1 : Any, S2 : Any, S3 : Any>(@JvmField val storeCreator: StoreCreator<Any>,
-                                                @JvmField val ctx1: ReduksContext,
+    class Factory<S1 : Any, S2 : Any, S3 : Any>(@JvmField val ctx1: ReduksContext,
+                                                @JvmField val creator1:StoreCreator<S1>,
                                                 @JvmField val ctx2: ReduksContext,
-                                                @JvmField val ctx3: ReduksContext) : StoreCreator<MultiState3<S1, S2, S3>> {
+                                                @JvmField val creator2:StoreCreator<S2>,
+                                                @JvmField val ctx3: ReduksContext,
+                                                @JvmField val creator3:StoreCreator<S3>
+                                                ) : StoreCreator<MultiState3<S1, S2, S3>> {
         override fun create(reducer: Reducer<MultiState3<S1, S2, S3>>,
                             initialState: MultiState3<S1, S2, S3>): Store<MultiState3<S1, S2, S3>> {
             if (reducer !is MultiReducer3<S1, S2, S3>) throw IllegalArgumentException()
             return MultiStore3<S1, S2, S3>(
-                    ctx1, storeCreator.ofType<S1>().create(reducer.r1, initialState.s1),
-                    ctx2, storeCreator.ofType<S2>().create(reducer.r2, initialState.s2),
-                    ctx3, storeCreator.ofType<S3>().create(reducer.r3, initialState.s3))
+                    ctx1, creator1.create(reducer.r1, initialState.s1),
+                    ctx2, creator2.create(reducer.r2, initialState.s2),
+                    ctx3, creator3.create(reducer.r3, initialState.s3))
         }
-
-        override fun <S_> ofType(): StoreCreator<S_> = storeCreator.ofType<S_>()
-        override val storeStandardMiddlewares: Array<out Middleware<MultiState3<S1, S2, S3>>> =
-                storeCreator.ofType<MultiState3<S1, S2, S3>>().storeStandardMiddlewares
-
     }
 
     override val storeMap = mapOf(
@@ -41,9 +39,9 @@ class MultiStore3<S1 : Any, S2 : Any, S3 : Any>(
     override var dispatch = dispatchWrappedAction
     //call back the multi subscriber each time any component state change
     override fun subscribe(storeSubscriber: StoreSubscriber<MultiState3<S1, S2, S3>>): StoreSubscription {
-        val s1 = store1.subscribe(StoreSubscriber { storeSubscriber.onStateChange() })
-        val s2 = store2.subscribe(StoreSubscriber { storeSubscriber.onStateChange() })
-        val s3 = store3.subscribe(StoreSubscriber { storeSubscriber.onStateChange() })
+        val s1 = store1.subscribe(StoreSubscriberFn { storeSubscriber.onStateChange() })
+        val s2 = store2.subscribe(StoreSubscriberFn { storeSubscriber.onStateChange() })
+        val s3 = store3.subscribe(StoreSubscriberFn { storeSubscriber.onStateChange() })
         return MultiStoreSubscription(s1, s2, s3)
     }
 }

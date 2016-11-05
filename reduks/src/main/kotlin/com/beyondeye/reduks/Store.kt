@@ -1,5 +1,4 @@
 package com.beyondeye.reduks
-
 /**
  * see also https://github.com/reactjs/redux/blob/master/docs/Glossary.md#store
  */
@@ -27,17 +26,22 @@ interface Store<S> {
 /**
  * extension method for directly provide a lambda as argument for store subscribe
  */
-fun <S>Store<S>.subscribe(lambda:()->Unit) {
-    this.subscribe(StoreSubscriber<S>{lambda()})
-}
+fun <S> Store<S>.subscribe(lambda: () -> Unit) = this.subscribe(StoreSubscriberFn<S> { lambda() })
+
+/**
+ * extension method for directly subscribing using a store subscriber builder
+ */
+fun <S> Store<S>.subscribe(sb: StoreSubscriberBuilder<S>) =this.subscribe(sb.build(this))
+
 /**
  * extension method for checking at compile time that we only dispatch objects derived from
  * base [Action] interface
  */
-fun <S>Store<S>.dispatch_a(action:Action)=dispatch(action)
+fun <S> Store<S>.dispatch_a(action: Action) = dispatch(action)
 
 /**
  * extension method for checking at compile time that we only dispatch objects derived from
  * base [StandardAction] interface
  */
-fun <S>Store<S>.dispatch_sa(action:StandardAction)=dispatch(action)
+fun <S> Store<S>.dispatch_sa(action: StandardAction) = dispatch(action)
+

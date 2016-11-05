@@ -16,20 +16,18 @@ class MultiStore2<S1:Any,S2:Any>(
         throw UnsupportedOperationException("MultiStore does not support replacing reducer")
     }
 
-    class Factory<S1:Any,S2:Any>(@JvmField val storeCreator: StoreCreator<Any>,
-                                 @JvmField val ctx1:ReduksContext,
-                                 @JvmField val ctx2:ReduksContext): StoreCreator< MultiState2<S1,S2> > {
+    class Factory<S1:Any,S2:Any>(@JvmField val ctx1:ReduksContext,
+                                 @JvmField val creator1:StoreCreator<S1>,
+                                 @JvmField val ctx2:ReduksContext,
+                                 @JvmField val creator2:StoreCreator<S2>
+                                 ): StoreCreator< MultiState2<S1,S2> > {
         override fun create(reducer: Reducer<MultiState2<S1, S2>>,
                             initialState: MultiState2<S1, S2>): Store<MultiState2<S1, S2>> {
             if(reducer !is MultiReducer2<S1, S2>) throw IllegalArgumentException()
             return MultiStore2<S1,S2>(
-                    ctx1,storeCreator.ofType<S1>().create(reducer.r1, initialState.s1),
-                    ctx2,storeCreator.ofType<S2>().create(reducer.r2, initialState.s2))
+                    ctx1,creator1.create(reducer.r1, initialState.s1),
+                    ctx2,creator2.create(reducer.r2, initialState.s2))
         }
-        override fun <S_> ofType(): StoreCreator<S_> =storeCreator.ofType<S_>()
-        override val storeStandardMiddlewares: Array<out Middleware<MultiState2<S1, S2>>> =
-                storeCreator.ofType<MultiState2<S1,S2>>().storeStandardMiddlewares
-
     }
     override val storeMap = mapOf(
             ctx1 to store1,
@@ -38,8 +36,8 @@ class MultiStore2<S1:Any,S2:Any>(
     override var dispatch=dispatchWrappedAction
     //call back the multi subscriber each time any component state change
     override fun subscribe(storeSubscriber: StoreSubscriber<MultiState2<S1, S2>>): StoreSubscription {
-        val s1=store1.subscribe(StoreSubscriber { storeSubscriber.onStateChange() })
-        val s2=store2.subscribe(StoreSubscriber { storeSubscriber.onStateChange() })
+        val s1=store1.subscribe(StoreSubscriberFn { storeSubscriber.onStateChange() })
+        val s2=store2.subscribe(StoreSubscriberFn { storeSubscriber.onStateChange() })
         return MultiStoreSubscription(s1, s2)
     }
 }

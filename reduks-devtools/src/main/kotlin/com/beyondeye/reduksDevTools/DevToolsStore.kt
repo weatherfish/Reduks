@@ -10,14 +10,8 @@ constructor(initialState: S, reducer: Reducer<S>, vararg middlewares: Middleware
         throw UnsupportedOperationException("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    class Creator<S>(vararg middlewares_: Middleware<S>) : StoreCreator<S> {
+    class Creator<S> : StoreCreator<S> {
         override fun create(reducer: Reducer<S>, initialState: S): Store<S> = DevToolsStore<S>(initialState,reducer)
-        override val storeStandardMiddlewares=middlewares_
-        override fun <S_> ofType(): StoreCreator<S_> {
-            throw NotImplementedError("TODO how to create standardmiddlewares for the new state type?")
-            return Creator<S_>()
-        }
-
     }
     private val devToolsStore: SimpleStore<DevToolsState<S>>
 
@@ -55,6 +49,6 @@ constructor(initialState: S, reducer: Reducer<S>, vararg middlewares: Middleware
         }
     }
     override fun subscribe(storeSubscriber: StoreSubscriber<S>): StoreSubscription {
-        return devToolsStore.subscribe(StoreSubscriber<DevToolsState<S>> {  storeSubscriber.onStateChange() })
+        return devToolsStore.subscribe(StoreSubscriberFn<DevToolsState<S>> {  storeSubscriber.onStateChange() })
     }
 }

@@ -17,7 +17,7 @@ class RxStoreSubscription<S>(val rxStore:RxStore<S>, val subscriber:rx.Subscribe
         rxStore.allRxSubscriptions?.add(subscriber)
     }
     override fun unsubscribe() {
-        if(storeSubscription.isUnsubscribed) return;
+        if(storeSubscription.isUnsubscribed) return
         storeSubscription.unsubscribe()
         rxStore.allRxSubscriptions?.remove(subscriber)
     }
