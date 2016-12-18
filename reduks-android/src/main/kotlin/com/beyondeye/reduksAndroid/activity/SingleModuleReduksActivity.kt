@@ -18,7 +18,7 @@ interface SingleModuleReduksActivity<S> {
                     activityStartState(),
                     activityStartAction(),
                     combineReducers(getActivityStateReducer(), ActionRestoreState.getRestoreStateReducer()),
-                    StoreSubscriberBuilderFn<S> {getActivityStoreSubscriber(it)})
+                    StoreSubscriberBuilderFn<S> {store -> getActivityStoreSubscriber(store)})
     )
     /**
      * module id used for reduks
@@ -32,7 +32,7 @@ interface SingleModuleReduksActivity<S> {
     /**
      * return the initial action to dispatch to the Store in onCreate
      */
-    fun activityStartAction(): Any
+    fun activityStartAction(): Any=INIT()
 
     /**
      * return the activity state reducer

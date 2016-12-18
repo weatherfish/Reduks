@@ -19,18 +19,11 @@ abstract class KovenantReduksActivity<S>: ReduksActivity<S>, AppCompatActivity()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Configure Kovenant with standard dispatchers for android (See http://kovenant.komponents.nl/android/config/)
-        startKovenant() //(before  initReduks()!!)
-        reduks=initReduks(KovenantStore.Creator<S>())
+        //startKovenant() //(before  initReduks()!!)
+        reduks=initReduks()
     }
 
-
-    /**
-     * function that create the reduks module that should control this activity
-     * If your activity also inherit from SingleModuleReduksActivity, then you can simply
-     * define this function as
-     * override fun initReduks(storeCreator:StoreCreator<S>) = initReduksSingleModule(storeCreator)
-     */
-    abstract fun initReduks(storeCreator:StoreCreator<S>): Reduks<S>
+    override fun <T> storeCreator(): StoreCreator<T> = KovenantStore.Creator<T>()
 
     //override for making this function visible to inheritors
     override fun onStop() {
@@ -46,7 +39,7 @@ abstract class KovenantReduksActivity<S>: ReduksActivity<S>, AppCompatActivity()
         // force=true, which ignores all current
         // scheduled tasks
         // see  (See http://kovenant.komponents.nl/android/config/)
-        stopKovenant()
+        //stopKovenant()
         super.onDestroy()
     }
     override fun onSaveInstanceState(outState: Bundle?) {

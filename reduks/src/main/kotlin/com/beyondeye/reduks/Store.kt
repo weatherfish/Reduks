@@ -3,6 +3,9 @@ package com.beyondeye.reduks
  * see also https://github.com/reactjs/redux/blob/master/docs/Glossary.md#store
  */
 interface Store<S> {
+    /**
+     * the current state
+     */
     val state: S
     /**
      * dispatch the action to the store and return it
@@ -23,6 +26,14 @@ interface Store<S> {
 
 }
 
+
+/**
+ * allow to use direct call on dispatcher function reference: dispatch(action) even if it is nullable
+ * instead of having to write dispatch?.invoke(action)
+ */
+operator fun ((action:Any) -> Any)?.invoke(action:Any):Any? =
+    if(this!=null) this.invoke(action) else null
+
 /**
  * extension method for directly provide a lambda as argument for store subscribe
  */
@@ -31,7 +42,7 @@ fun <S> Store<S>.subscribe(lambda: () -> Unit) = this.subscribe(StoreSubscriberF
 /**
  * extension method for directly subscribing using a store subscriber builder
  */
-fun <S> Store<S>.subscribe(sb: StoreSubscriberBuilder<S>) =this.subscribe(sb.build(this))
+fun <S> Store<S>.subscribe(sb: StoreSubscriberBuilder<S>?) =if(sb!=null) this.subscribe(sb.build(this)) else null
 
 /**
  * extension method for checking at compile time that we only dispatch objects derived from
