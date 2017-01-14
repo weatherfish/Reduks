@@ -1,4 +1,4 @@
-[![Kotlin 1.0](https://img.shields.io/badge/Kotlin-1.0.5-blue.svg)](http://kotlinlang.org)
+[![Kotlin 1.0](https://img.shields.io/badge/Kotlin-1.0.6-blue.svg)](http://kotlinlang.org)
 [![](https://jitpack.io/v/beyondeye/reduks.svg)](https://jitpack.io/#beyondeye/reduks)
 [![Build Status](https://travis-ci.org/beyondeye/Reduks.svg?branch=master)](https://travis-ci.org/beyondeye/Reduks)
 [![Slack channel](https://img.shields.io/badge/Chat-Slack-green.svg)](https://kotlinlang.slack.com/messages/reduks/)
@@ -53,26 +53,26 @@ repositories {
 }
 
 // main reduks package
-compile 'com.github.beyondeye.reduks:reduks-core:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-core:2.0.0b12'
 
 //rx-java based state store+ additional required dep for android support
-compile 'com.github.beyondeye.reduks:reduks-rx:2.0.0b11'
-compile 'com.github.beyondeye.reduks:reduks-android:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-rx:2.0.0b12'
+compile 'com.github.beyondeye.reduks:reduks-android:2.0.0b12'
 
 //kovenant based state store and Async Action Middleware
-compile 'com.github.beyondeye.reduks:reduks-kovenant:2.0.0b11'
-compile 'com.github.beyondeye.reduks:reduks-android:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-kovenant:2.0.0b12'
+compile 'com.github.beyondeye.reduks:reduks-android:2.0.0b12'
 
 
 //dev tools
-compile 'com.github.beyondeye.reduks:reduks-devtools:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-devtools:2.0.0b12'
 
 //immutable collections
-compile 'com.github.beyondeye.reduks:reduks-pcollections:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-pcollections:2.0.0b12'
 
 //reduks bus
-compile 'com.github.beyondeye.reduks:reduks-pcollections:2.0.0b11'
-compile 'com.github.beyondeye.reduks:reduks-bus:2.0.0b11'
+compile 'com.github.beyondeye.reduks:reduks-pcollections:2.0.0b12'
+compile 'com.github.beyondeye.reduks:reduks-bus:2.0.0b12'
 
 ```
 
@@ -461,7 +461,7 @@ But first let's see how we post some data on the bus:
 ```kotlin
  store.postBusData(LoginFragmentResult(username = "Kotlin", password = "IsAwsome"))
 ```
-That's it. See more code examples [here](./reduks-bus/src/test/kotlin/com/beyondeye/reduks/bus/BusStoreEnhancerTest.kt). For the full Api see [here](./reduks-bus/src/main/kotlin/com/beyondeye/reduks/bus/api.kt)
+That's it. See more code examples [here](./reduks-bus/src/test/kotlin/com/beyondeye/reduks/bus/BusStoreEnhancerTest.kt). For the full Api see [here](./reduks-bus/src/main/kotlin/com/beyondeye/reduks/bus/busApi.kt)
 #####Reduks bus under the hood
 What's happening when we post some data on the bus? What we are doing is actualling dispatching the Action
 ```kotlin
@@ -489,55 +489,41 @@ interface  ReduksActivity<S> {
        val reduks: Reduks<S>
    }
 ```
-For posting data on the bus the fragment need to obtain a reference to the [`Reduks`](./reduks/src/main/kotlin/com/beyondeye/reduks/Reduks.kt) object of the parent activity. It can be easily done overriding the `onAttach()` method:
+For posting data on the bus the fragment need to obtain a reference to the [`Reduks`](./reduks/src/main/kotlin/com/beyondeye/reduks/Reduks.kt) object of the parent activity.
+ You can get it easily from the parent activity for example by defining the following extension property in the fragment
 ```kotlin
-fun Context.bindReduksFromParentActivity(): Reduks<out StateWithBusData>? =
-        if (this is ReduksActivity<*>) {
-            this.reduks as? Reduks<out StateWithBusData>
-        } else {
-            throw RuntimeException(this.toString() + " must implement ReduksActivity<out StateWithBusData>")
-        }
-
+    fun Fragment.reduks() =
+            if (activity is ReduksActivity<*>)
+                (activity as ReduksActivity<out StateWithBusData>).reduks
+            else null
+```
+and then we can use it
+```
 class LoginFragment : Fragment() {
-    private var reduks: Reduks<out StateWithBusData>?=null
-    override fun onAttach(context: Context?) {
-        super.onAttach(context)
-        reduks=context?.bindReduksFromParentActivity()
-    }
-
-    override fun onDetach() {
-        super.onDetach()
-        reduks=null
-    }
     fun onSubmitLogin() {
-        reduks?.postBusData(LoginFragmentResult("Kotlin","IsAwsome"))
+        reduks()?.postBusData(LoginFragmentResult("Kotlin","IsAwsome"))
     }
 }
 ```
 And in another fragment (or in the parent activity) we can listen for data posted on the bus in this way 
 ```kotlin
 class LoginDataDisplayFragment : Fragment() {
-    private var reduks: Reduks<out StateWithBusData>?=null
-    val busHandlers:MutableList<StoreSubscription> = mutableListOf()
-
     override fun onAttach(context: Context?) {
         super.onAttach(context)
-        reduks=context?.bindReduksFromParentActivity()
-        reduks?.addBusDataHandler { lfr:LoginFragmentResult? ->
+        reduks()?.addBusDataHandlerWithTag(tag) { lfr:LoginFragmentResult? ->
             if(lfr!=null) {
                 print("login with username=${lfr.username} and password=${lfr.password} and ")
             }
-        }?.addToList(busHandlers)
+        }
     }
 
     override fun onDetach() {
         super.onDetach()
-        reduks?.removeBusDataHandlers(busHandlers)
-        reduks=null
+        reduks()?.removeBusDataHandlersWithTag(tag) //remove all bus data handler attached to this fragment tag
     }
 }
 ```
-
+Notices that we are using the Fragment tag (assuming it is defined) for automatically keeping track of all registered bus data handlers and removing them when the Fragment is detached from the activity
 for the full source code of the example discussed see [here](./code_fragments/src/main/java/beyondeye/com/examples/busExample.kt) 
 ####Persisting Reduks state and activity lifecycle
 TODO
